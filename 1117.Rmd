@@ -1,0 +1,84 @@
+##1117
+###B04208025/地理三/林芳偉
+
+##In class task
+```{r}
+rm(list = ls())
+library(GISTools)
+library(rgdal)
+library(dplyr)
+library(sp)
+library(aspace)
+
+s <- readOGR(dsn = "QG_Data6", layer = "Schools", encoding = "UTF8")
+s_atr <- data.frame(s)
+par(mar=c(0,0,0,0))
+bb <- bbox(s)
+grd <- GridTopology(cellcentre.offset=c(bb[1,1], bb[2,1]), cellsize=c(5000,5000), cells.dim = c(12,12)) 
+
+GRD_Layer <- SpatialPolygonsDataFrame(as.SpatialPolygons.GridTopology(grd), data = data.frame(c(1:144)), match.ID = FALSE)
+names(GRD_Layer) <- "ID"
+
+Overlay_Layer <- gIntersection(GRD_Layer, s, byid = T)
+Overlay_Layer_atr <- data.frame(Overlay_Layer)
+
+tmp <- strsplit(rownames(Overlay_Layer_atr), " ") 
+tmp2 <- unlist(tmp)
+
+school.id <- vector()
+gridlayer.id <- vector()
+
+x=1
+for (i in seq(1,848,2)) {
+  gridlayer.id[x] <- tmp2[i]
+  x=x+1  
+}
+
+y=1
+for (i in seq(2,848,2)) {
+  school.id[y] <- tmp2[i]
+  y=y+1
+}
+
+df <- data.frame(school.id, gridlayer.id, Number=1)
+
+a <- data.frame(xtabs(df$Number~df$gridlayer.id))
+names(a) <- c("gridlayer.id", "counts")
+a$Number <- 1
+b <- data.frame(xtabs(a$Number~a$counts))
+names(b) <- c("counts", "number")
+b$counts <- as.numeric(as.vector(b$counts))
+
+#Ho：s^2=lambda
+#H1：s^2≠lambda
+
+mi <- b$counts
+fi <- b$number
+mu <- 424/144
+
+c <- c()
+for(i in 1:15) {
+  c[i] <- ((mi[i]-mu)^2)*fi[i]
+}
+c <- sum(c)+mu^2*57
+
+s_2 <- c/143
+
+vmr <- s_2/mu
+svmr <- sqrt(2/(144-1))
+
+t <- (vmr-1)/svmr
+cat("t：", t, "\n")
+
+#t > 1.96
+#Ho is regected
+
+#Ho：s^2 = lambda
+#H1：s^2 > lambda
+#t > 1.65
+#Ho is rejected
+```
+
+
+###H1 which states that point pattern is clustered is accepted.
+###台南市學校的空間型態是Clustered.

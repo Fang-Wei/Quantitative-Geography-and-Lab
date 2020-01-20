@@ -1,0 +1,25 @@
+##第一次期中考加分題
+###**B04208025/地理三/林芳偉**
+
+```{r}
+library(cartography)
+library(rgdal)
+library(GISTools)
+library(dplyr)
+library(sp)
+
+Popn.TWN <- readOGR(dsn = "Lyr", layer = "Popn_TWN", encoding="Big5")
+
+Popn.TWN_atr <- data.frame(Popn.TWN)
+Age_L65 <- as.numeric(paste(Popn.TWN_atr$Age_L65))
+Age25 <- as.numeric(paste(Popn.TWN_atr$Age25))
+
+Age_L65[which(Age_L65 > sort(Age_L65)[368/(100/70)])] = "Elder"
+Age_L65[which(Age_L65 <= sort(Age_L65)[368/(100/70)])] = "Regular"
+
+Age25[which(Age25 > sort(Age25)[368/(100/50)])] = "Teens"
+Age25[which(Age25 <= sort(Age25)[368/(100/50)])] = "Regular"
+
+table(Age25, Age_L65)
+```
+

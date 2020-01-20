@@ -1,0 +1,71 @@
+##In-class task
+###B04208025/地理三/林方偉
+
+##By week
+```{r}
+rm(list = ls())
+
+library("GISTools")
+library("rgdal")
+library("dplyr")
+library("sp")
+library("aspace")
+
+p <- readOGR(dsn = "QG_Data6", layer = "point_event", encoding = "UTF8")
+p_atr <- data.frame(p)
+
+week <- p_atr$WEEK
+p_atr$number <- 1
+number <- p_atr$number
+type <- xtabs(number~week)
+type <- data.frame(type)
+
+hist(week, breaks=53, col="grey", main="By week", xlab="week", ylab = "Number")
+```
+
+##By period
+```{r}
+period <- c(1:7)
+type2 <- data.frame(Period=period)
+type2$Number[1] <- sum(type[1:7,2])
+type2$Number[2] <- sum(type[8:12,2])
+type2$Number[3] <- sum(type[13:18,2])
+type2$Number[4] <- sum(type[19:26,2])
+type2$Number[5] <- sum(type[27:34,2])
+type2$Number[6] <- sum(type[35:42,2])
+type2$Number[7] <- sum(type[43:48,2])
+
+barplot(type2$Number, col="grey", main="By period", xlab="week", ylab = "Number")
+```
+
+##Spatial trends
+```{r}
+t <- readOGR(dsn = "QG_Data6", layer = "Taiwan_Town", encoding = "UTF8")
+t_atr <- data.frame(t)
+
+k <- t[c(229:235,237:238,244,259,263),]
+p_atr$Y <- as.numeric(p_atr$Y)
+
+p1 <- p_atr[which(p_atr$WEEK==1 | p_atr$WEEK==2 | p_atr$WEEK==3 | p_atr$WEEK==4 | p_atr$WEEK==5 | p_atr$WEEK==6 | p_atr$WEEK==7),]
+p2 <- rbind(p1, p_atr[which(p_atr$WEEK==8 | p_atr$WEEK==10 | p_atr$WEEK==12 | p_atr$WEEK==13 | p_atr$WEEK==14),])
+p3 <- rbind(p2, p_atr[which(p_atr$WEEK==16 | p_atr$WEEK==18 | p_atr$WEEK==19 | p_atr$WEEK==21 | p_atr$WEEK==22 | p_atr$WEEK==23),])
+p4 <- rbind(p3, p_atr[which(p_atr$WEEK==24 | p_atr$WEEK==25 | p_atr$WEEK==26 | p_atr$WEEK==27 | p_atr$WEEK==28 | p_atr$WEEK==29 | p_atr$WEEK==30 | p_atr$WEEK==31),])
+p5 <- rbind(p4, p_atr[which(p_atr$WEEK==32 | p_atr$WEEK==33 | p_atr$WEEK==34 | p_atr$WEEK==35 | p_atr$WEEK==36 | p_atr$WEEK==37 | p_atr$WEEK==38 | p_atr$WEEK==39),])
+p6 <- rbind(p5, p_atr[which(p_atr$WEEK==40 | p_atr$WEEK==41 | p_atr$WEEK==42 | p_atr$WEEK==43 | p_atr$WEEK==44 | p_atr$WEEK==45 | p_atr$WEEK==46 | p_atr$WEEK==47),])
+p7 <- p_atr
+
+m1 <- mean_centre(id=1, weighted=FALSE, weights=NULL, points=p1[,2:3])
+m2 <- mean_centre(id=2, weighted=FALSE, weights=NULL, points=p2[,2:3])
+m3 <- mean_centre(id=3, weighted=FALSE, weights=NULL, points=p3[,2:3])
+m4 <- mean_centre(id=4, weighted=FALSE, weights=NULL, points=p4[,2:3])
+m5 <- mean_centre(id=5, weighted=FALSE, weights=NULL, points=p5[,2:3])
+m6 <- mean_centre(id=6, weighted=FALSE, weights=NULL, points=p6[,2:3])
+m7 <- mean_centre(id=7, weighted=FALSE, weights=NULL, points=p7[,2:3])
+m <- rbind(m1, m2, m3, m4, m5, m6, m7)
+
+plot(k, main="Spatial trends in different periods")
+points(p_atr[,2:3], asp=1, xlab="", ylab="",  pch=16, cex=0.6)
+points(m$CENTRE.x, m$CENTRE.y, col=c("red", "orange", "yellow", "green", 107, "blue", "purple"), cex=1, pch=16)
+legend(158000, 2507000, c("Period1", "Period2", "Period3", "Period4", "Period5", "Period6", "Period7"), col=c("red", "orange", "yellow", "green", 107, "blue", "purple"), cex=1, pch=16)
+```
+

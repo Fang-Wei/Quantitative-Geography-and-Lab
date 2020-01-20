@@ -1,0 +1,51 @@
+##HW10
+###**B04208025/地理三/林芳偉**
+
+```{r}
+rm(list = ls())
+
+library(GISTools)
+library(sp)
+library(rgdal)
+library(aspace)
+library(dplyr)
+library(spatstat)
+sch <- readOGR(dsn = "QG_Data6", layer = "Schools", encoding = "UTF8")
+sch.df <- data.frame(sch)
+
+bb <- bbox(sch)
+x.coor <- sch$X_coor
+y.coor <- sch$Y_coor
+x.range <- bb[1,]
+y.range <- bb[2,]
+
+sch.ppp <- ppp(x.coor, y.coor, x.range, y.range)
+win <- owin(x.range, y.range)
+A <- area.owin(win)
+```
+
+```{r}
+rp <- rpoint(424, win = win)
+buf <- gBuffer(rp, width = 1000, byid = T)
+int <- gIntersection(buf, sch, byid=T)
+int.df <- data.frame(int)
+intn <- strsplit(rownames(int.df)," ")
+intn <- unlist(intn)
+
+dt <- matrix(ncol=2, nrow=length(intn)/2)
+colnames(dt)=c("sch1","sch2")
+
+x=1
+for(i in seq(1,length(intn),2)){
+  dt[x,1]=intn[i]
+  dt[x,2]=intn[i+1]
+  x=x+1
+}
+dt <- data.frame(dt)
+
+dt$n <- 1
+num <- data.frame(xtabs(dt$n ~ dt$sch1))
+num$"-1" <- num$Freq-1
+K <- as.numeric((sum(num$"-1")/424)/A)
+```
+

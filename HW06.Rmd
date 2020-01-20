@@ -1,0 +1,78 @@
+##HW06
+###**B04208025/地理三/林芳偉**
+
+###R Practice
+###1.
+```{r}
+library(rgdal)
+library(GISTools)
+library(dplyr)
+library(sp)
+
+Elementary_School <- readOGR(dsn = "QG_Data4", layer = "Elementary_School")
+E <- readShapePoints("Elementary_School")
+Tpe_Fastfood <- readOGR(dsn = "QG_Data4", layer = "Tpe_Fastfood")
+Tpe_Town <- readOGR(dsn = "QG_Data4", layer = "Tpe_Town", encoding="Big5")
+
+E_atr <- data.frame(E)
+e <- data.frame(Elementary_School)
+f <- data.frame(Tpe_Fastfood)
+t <- data.frame(Tpe_Town)
+
+e_buffer <- gBuffer(Elementary_School, width = 1000, byid = T)
+
+a <- c()
+for(i in 1:nrow(e)) {
+  a[i] <- nrow(data.frame(Tpe_Town[gIntersection(e_buffer[i,], Tpe_Town, byid = T),]))
+}
+
+r <- which(a[]==max(a))
+
+E_atr[r,2]
+```
+
+***
+
+###2.(1)
+```{r}
+b <- c()
+for(i in 1:nrow(e)) {
+  b[i] <- nrow(data.frame(gIntersection(e_buffer[i,], Tpe_Fastfood, byid = T)))
+}
+
+public <- which(e$Type==(e[2,6]))
+private <- which(e$Type==(e[1,6]))
+
+mean_public <- mean(b[public])
+mean_private <- mean(b[private])
+
+mean_public
+mean_private
+```
+
+***
+
+###2.(2)
+```{r}
+#Ho：mean_public-mean_private=0
+#Ha：mean_public-mean_private≠0
+#Level of significance：0.05
+
+n <- 148
+n1 <- 51
+n2 <- 97
+mu1 <- mean_public
+mu2 <- mean_private
+sd1 <- sd(public)
+sd2 <- sd(private)
+mu <- mu1-mu2
+t <- (mu1-mu2)/sqrt(((sd1)^2/n1)+((sd2)^2/n2))
+df <- (((sd1)^2/n1)+((sd2)^2/n2))^2/((1/(n1-1))*(((sd1)^2)/n^2)+(1/(n2-1))*(((sd2)^2/n2)^2))
+t
+
+p_value <- 2*(1-pt(t,df))
+p_value
+```
+####Using a=0.05 as the level of significance criterion, the results are not statistically significant because the p-value of the test is greater than 0.05.
+####In other words, we cannot reject the null hypothesis.
+####公立學校學生暴露的平均肥胖風險沒有顯著高於私立學校的學生

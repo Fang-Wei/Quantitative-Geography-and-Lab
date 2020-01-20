@@ -1,0 +1,151 @@
+##HW01
+###**B04208025/地理三/林芳偉**
+
+###3.1
+```{r}
+(2017-2015)/(2017-1997)*100
+```
+
+***
+
+###3.2
+```{r}
+a <- 2015
+b <- 1997
+c <- 2017-a 
+d <- 2017-b
+A <- c/d*100
+A
+```
+
+***
+
+###3.4
+```{r}
+e <- c(4,5,8,11)
+sum <- sum(e)
+sum
+```
+
+***
+
+###3.5
+```{r}
+x <- rnorm(100)
+plot(x)
+```
+
+***
+
+###4
+```{r}
+help(sqrt)
+```
+
+***
+
+###5
+```{r}
+source("firstscript.R")
+source("firstscript.R")
+source("firstscript.R")
+```
+
+***
+
+###6.2
+```{r}
+P <- seq(from=31,to=60)
+P
+
+Q <- matrix(P,nrow=6, ncol=5)
+Q
+```
+
+***
+
+###6.3
+```{r}
+x1 <- rnorm(100)
+x2 <- rnorm(100)
+x3 <- rnorm(100)
+t <- data.frame(a=x1,b=x1+x2,c=x1+x2+x3)
+plot(t)
+sd(t$a)
+sd(t$b)
+sd(t$c)
+```
+
+###7
+```{r}
+plot(t$a, type="l", ylim=range(t),lwd=3, col=rgb(0,0,1,1))
+lines(t$b, type="s", lwd=2,col=rgb(0,0,0,1))
+points(t$c, pch=20, cex=2,col=rgb(0,1,0,1))
+
+help(rgb)
+help(points)
+```
+
+***
+
+###8
+```{r}
+data <- read.table(file="tst1.txt",header=TRUE)
+data
+
+gg=data$g*5
+data2 <- data.frame(a=data$a,g=gg,x=data$x)
+write.table(data2,file="tst2.txt",row.names=FALSE)
+data2
+```
+
+***
+
+###9
+```{r}
+x <- rnorm(100)
+y <- sqrt(x)
+z <- mean(y)
+z
+```
+
+***
+
+###10.2
+```{r}
+xaxis <- strptime(c("20150920","20141205","20160712"),format="%Y%m%d")
+yaxis <- c(10,100,1000)
+plot(xaxis,yaxis)
+```
+
+***
+
+###11.2
+```{r}
+v <- c(1:100)
+for (i in 1:length(v)){
+  if (v[i]<5 || v[i]> 90) {v[i] <- v[i]*10}
+  else {v[i] <- v[i]*0.1}
+}
+v
+```
+
+***
+
+###11.3
+```{r}
+f <- function(a){
+  b <- c()
+  for (i in 1:length(a)){
+    if (a[i]<5 | a[i]> 90) {b[i] <- a[i]*10}
+    else {b[i] <- a[i]*0.1}
+  }
+  return (b)
+}
+
+c <- c(100:1)
+
+d <- f(c)
+d
+```
+

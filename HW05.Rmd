@@ -1,0 +1,30 @@
+##HW05
+###**B04208025/地理三/林芳偉**
+
+###2.
+```{r}
+library(rgdal)
+library(sp)
+library(GISTools)
+Popn.TWN <- readOGR(dsn = "Lyr", layer = "Popn_TWN", encoding="Big5")
+
+max_x <- c()
+min_x <- c()
+max_y <- c()
+min_y <- c()
+
+for(i in 1:368) {
+  poly <- Popn.TWN@polygons[[i]]@Polygons[[1]]@coords
+  max_x[i] <- max(poly[,1])
+  min_x[i] <- min(poly[,1])
+  max_y[i] <- max(poly[,2])
+  min_y[i] <- min(poly[,2])
+}
+
+cat("most.eastern.point：", min(min_x), "\n", "most.western.point：", max(max_x), "\n", "most.southern.point：", min(min_y), "\n", "most.northern.point：", max(min_y), "\n")
+
+A <- bbox(Popn.TWN)
+
+cat("most.eastern.point：", min(A[1,1]), "\n", "most.western.point：", max(A[1,2]), "\n", "most.southern.point：", min(A[2,1]), "\n", "most.northern.point：", max(A[2,2]), "\n")
+```
+

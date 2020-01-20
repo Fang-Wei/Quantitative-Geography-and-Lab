@@ -1,0 +1,121 @@
+##HW02
+###**B04208025/地理三/林芳偉**
+
+###In-class task
+```{r}
+flow <- matrix(c(2000, 1243, 543, 1243, 212, 545, 654, 168, 109), c(3,3), byrow=TRUE)
+
+colnames(flow) <- c("Leicester", "Liverpool"," Elsewhere")
+rownames(flow) <- c("Leicester", "Liverpool", "Elsewhere")
+
+flow
+
+Find.Places <- function(x) {
+  y <- which(flow==x, arr.ind = TRUE)
+  
+  for(i in 1:nrow(y)) {
+    
+  print(c("origin"=rownames(flow)[y[i,1]], "destination"=colnames(flow)[y[i,2]]))
+  }
+}
+
+Find.Places(1243)
+Find.Places(212)
+Find.Places(654)
+```
+
+***
+
+###The tasks of the R Practice (Data and Plotting)
+
+###1.
+```{r}
+M <- matrix(c(0,30,35,35,35,50,80,80,80,120,
+              30,0,30,30,30,40,60,60,60,100,
+              35,30,0,30,30,30,35,35,35,75,
+              35,30,30,0,30,30,35,35,35,75,
+              35,30,30,30,0,30,35,35,35,75,
+              50,40,30,30,30,0,30,30,30,60,
+              80,60,35,35,35,30,0,30,30,40,
+              80,60,35,35,35,30,30,0,30,40,
+              80,60,35,35,35,30,30,30,0,40,
+              120,100,75,75,75,60,40,40,40,0), c(10,10))
+colnames(M) <- c("A1", "A2", "A3", "A4", "A5", "A6", "A7", "A8", "A9", "A10")
+rownames(M) <- c("A1", "A2", "A3", "A4", "A5", "A6", "A7", "A8", "A9", "A10")
+
+M
+
+Find.Fare <- function(x,y) {
+
+  return(M[which(colnames(M)==x),which(rownames(M)==y)])
+}
+
+Find.Fare("A1","A7")
+Find.Fare("A10","A1")
+Find.Fare("A2","A9")
+```
+
+***
+
+###2.
+```{r}
+Find.Route <- function(z) {
+  if(z<30) {return("You don't have enough money.")}
+  else {
+  a <- which(M<=z & M!=0, arr.ind = TRUE)
+  b <- matrix(ncol = 2, nrow = length(a)/2, byrow = FALSE)
+  colnames(b) <- c("origin","destination")
+  
+  for(i in 1:length(a)) {
+    b[i] <- rownames(M)[a[i]]
+  }
+  
+  return(b)
+  }
+}
+
+Find.Route(15)
+Find.Route(30)
+Find.Route(45)
+```
+
+***
+
+###3.
+```{r}
+Find <- function(o,p) {
+  
+  if(p<30) {return("You don't have enough money.")}
+  else {
+  a <- which(M<=p & M!=0, arr.ind = TRUE)
+  b <- matrix(ncol = 2, nrow = length(a)/2, byrow = FALSE)
+  colnames(b) <- c("origin","destination")
+  
+  for(i in 1:length(a)) {
+    b[i] <- rownames(M)[a[i]]
+  }
+  
+  c <- b[which(b[,1]==o),2]
+  
+  print(c)
+  }
+  
+  library("GISTools")
+  county <- readShapePoly("county.shp")
+  metro <- readShapePoints("taoyuan_metro.shp")
+  
+  colnames(M) <- c("A7", "A9", "A5", "A6", "A2", "A4", "A3", "A1", "A10", "A8")
+  
+  d <- which(colnames(M) %in% c, arr.ind = TRUE)
+  e <- which(colnames(M) %in% o, arr.ind = TRUE)
+
+  plot(county)
+  points(metro[e,], pch=16, col='blue')
+  points(metro[d,], pch=16, col='red')
+  
+}
+
+Find("A1",30)
+Find("A1",60)
+Find("A1",100)
+```

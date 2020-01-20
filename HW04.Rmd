@@ -1,0 +1,69 @@
+##HW04
+###**B04208025/地理三/林芳偉**
+
+```{r}
+library(rgdal)
+library(sp)
+library(GISTools)
+library(OpenStreetMap)
+
+Popn.TWN <- readOGR(dsn = "Lyr", layer = "Popn_TWN", encoding="Big5")
+
+a <- data.frame(Popn.TWN)
+AR <- as.numeric(paste(a$Age_L65))/as.numeric(paste(a$Popn))
+```
+
+###1.
+####(a)
+```{r}
+choropleth(Popn.TWN, AR, shading = auto.shading(AR,cols = brewer.pal(5,"OrRd"), n=5), main="Distribution of AR in Taiwan")
+choro.legend(-132880,2571930,auto.shading(AR,cols = brewer.pal(5,"OrRd"),n=5))
+map.scale(500000,2471930,miles2ft(25), "Miles",5,5) 
+north.arrow(500000,2758870,miles2ft(2.5),col= 'black') 
+```
+
+####(b)
+```{r}
+d <- as.numeric(paste(a$Popn))/as.numeric(paste(a$Area))
+d.sort <- sort(d)
+a.h <- AR[d < d.sort[368/10]]
+a.l <- AR[d > d.sort[368*9/10]]
+
+boxplot(a.h,a.l, names = c("Highest","Lowest"), col = brewer.pal(2, "Blues"), main = "AR Distributions", xlab="Top 10% total-pupation-density")
+```
+
+***
+
+###2.
+####(a)
+```{r}
+AR.sort <- sort(AR)
+AgingArea <- a[AR > AR.sort[368*9/10],]
+
+A_code <- as.numeric(paste(AgingArea[,5]))
+B_code <- as.numeric(paste(a[AR <= AR.sort[368*9/10],][,5]))
+
+A_code
+```
+
+####(b)
+```{r}
+plot(Popn.TWN[A_code,], col='red', border="grey", bg='aliceblue', main="Aging Area Distribution")
+plot(Popn.TWN[B_code,], add=TRUE, col='blue')
+legend(-45070,2552965, c("Aging Areas","Other Areas"), pch = c(18,18), col = c("red","blue"))
+map.scale(400000,2531930,miles2ft(25), "Miles",5,5) 
+north.arrow(500000,2698870,miles2ft(2.5),col= 'black') 
+```
+
+####(d)
+```{r}
+TWN.LongLat <- spTransform(Popn.TWN, CRS("+proj=longlat +datum=WGS84 +no_defs +ellps=WGS84 +towgs84=0,0,0"))
+
+ul <- as.vector(cbind(bbox(TWN.LongLat)[2,2], bbox(TWN.LongLat)[1,1]))
+lr <- as.vector(cbind(bbox(TWN.LongLat)[2,1], bbox(TWN.LongLat)[1,2]))
+
+MyMap <- openmap(ul,lr,9, "osm")
+
+plot(MyMap, removeMargin=FALSE) 
+plot(spTransform(Popn.TWN[A_code,], osm()), add = TRUE, col=rgb(1,0,0,0.4))
+```

@@ -1,0 +1,90 @@
+##Lab
+###B04208025/地理三/林芳偉
+
+```{r}
+rm(list = ls())
+
+library(GISTools)
+library(sp)
+library(rgdal)
+library(aspace)
+library(dplyr)
+library(spatstat)
+
+nt <- readOGR(dsn = "Lab_1222", layer = "NorthTaiwan", encoding = "UTF8")
+sch  <- readOGR(dsn = "Lab_1222", layer = "Schools", encoding = "UTF8")
+sta  <- readOGR(dsn = "Lab_1222", layer = "Stations", encoding = "UTF8")
+```
+
+##1.
+```{r}
+#車站找學校
+nnd1 <- c(1:nrow(sta@data))
+for(i in 1:nrow(sta@data)){
+  nnd1[i] <- sort(gDistance(sta[i,], sch, byid=TRUE))[1]
+}
+f1 <- ecdf(nnd1)
+plot(f1, pch=20, main="車站找學校", xlab="Distance (m)", ylab="F")
+
+#學校找車站
+nnd2 <- c(1:nrow(sch@data))
+for(i in 1:nrow(sch@data)){
+  nnd2[i] <- sort(gDistance(sch[i,], sta, byid=TRUE))[1]
+}
+f2 <- ecdf(nnd2)
+plot(f2, pch=20, main="學校找車站", xlab="Distance (m)", ylab="F")
+```
+
+###「車站找學校」代表有多少比例的車站在不同距離內有1間學校。
+###「學校找車站」代表有多少比例的學校在不同距離內有1個車站。
+###題目為「學校是否都聚集在車站附近」，因此要探討的是每個學校離它最近的車站的距離，來找出學校是否都聚集在車站附近，若是「車站找學校」的方式，則有多少車站則有多少個距離，但其它學校的分布狀況是不知道的，因此用「學校找車站」的方式才是對的。
+
+##2.學校找車站
+```{r}
+bb <- bbox(sch)
+x.coor <- coordinates(sch)[,1]
+y.coor <- coordinates(sch)[,2]
+x.range <- bb[1,]
+y.range <- bb[2,]
+
+sch.ppp <- ppp(x.coor, y.coor, x.range, y.range)
+
+win <- as.owin(nt)
+
+plot(f2, pch=20, main="學校找車站 F function", xlab="Distance (m)", ylab="F", xlim=c(0,5000))
+
+nnd <- c()
+f <- c()
+for(i in 1:99) {
+  rp <- rpoint(nrow(sta@data), win = win)
+  nnd <- nncross(sch.ppp, rp)
+  nnd <- c(nnd[,1])
+  f <- ecdf(nnd)
+  plot(f, add=T, col="blue")
+}
+```
+
+##3.
+```{r}
+buf <- gBuffer(sta, width=1000, byid=T)
+int <- data.frame(gIntersection(buf, sch, byid=T))
+
+intn <- strsplit(rownames(int)," ")
+intn <- unlist(intn)
+dt <- matrix(ncol=2, nrow=length(intn)/2)
+colnames(dt)=c("station","school")
+x=1
+for(i in seq(1,length(intn),2)){
+  dt[x,1]=intn[i]
+  dt[x,2]=intn[i+1]
+  x=x+1
+}
+dt=data.frame(dt)
+dt$n <-1
+num <- data.frame(xtabs(dt$n ~ dt$station))
+num <- num[which(num$Freq>=4),]
+
+p <- nrow(num)/nrow(sta@data)
+
+cat("有", p, "比例的車站在1公里的範圍內服務至少4間學校")
+```

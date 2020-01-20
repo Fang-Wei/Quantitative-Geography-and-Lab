@@ -1,0 +1,89 @@
+##HW07
+###**B04208025/地理三/林芳偉**
+
+```{r}
+library(GISTools)
+library(dplyr)
+library(rgdal)
+library(sp)
+
+e <- readOGR(dsn = "QG_Data4", layer = "Elementary_School", encoding = "UTF8")
+t <- readOGR(dsn = "QG_Data4", layer = "Tpe_Town", encoding = "UTF8")
+
+e_atr <- data.frame(e)
+t_atr <- data.frame(t)
+
+e_buffer <- gBuffer(e, width = 1000, byid = T)
+
+Overlay_Layer <- gIntersection(e_buffer, t, byid = T)
+tmp <- unlist(strsplit(names(Overlay_Layer), " "))
+
+e.id<-vector()
+t.id<-vector()
+
+x <- 1
+for (i in seq(1,582,2)) {
+  e.id[x] <- tmp[i]
+  x=x+1
+}
+
+y <- 1
+for (i in seq(2,582,2)) {
+  t.id[y] <- tmp[i]
+  y=y+1
+}
+
+df <- data.frame(e.id, t.id)
+
+for(i in 1:291) {
+  df$area1[i] <- t$Area[as.numeric(t.id[i])+1]
+  df$students1[i] <- as.numeric(e$Students[as.numeric(e.id[i])])
+}
+
+New <- SpatialPolygonsDataFrame(Overlay_Layer, data=df, match.ID = F)
+
+New$area2 <- round(poly.areas(New))
+area1 <- New$area1
+area2 <- New$area2
+students1 <- New$students1
+t.id <- New$t.id
+New_atr <- data.frame(New)
+
+e_atr$townname <- substring(e_atr$Name,4,6)
+e_atr[46,10] <- "中正區"
+
+for(i in 1:148) {
+  e_atr$townID[i] <- which(t_atr[,4]==e_atr[i,10])-1
+}
+
+a <- c()
+for(i in 1:148) {
+  a[i] <- which(New_atr[,1]==i & New_atr[,2]==e_atr[i,11])
+}
+
+for(i in 1:148) {
+  e_atr$p[i] <- New_atr[a[i],5]/sum(New_atr[which(New_atr[,1]==i, arr.ind = T),5])
+}
+
+e_atr$intown <- round(e_atr$p*e_atr$Students)
+e_atr$outtown <- e_atr$Students-e_atr$intown
+```
+
+###(1)
+```{r}
+hist(e_atr$outtown, breaks=10, col="blue", main="台北市各小學跨區就讀人數", xlab="跨區就讀人數")
+```
+
+###(2)
+```{r}
+t.e <- xtabs(e_atr$outtown ~ e_atr$townname)
+df1 <- data.frame(t.e)
+names(df1) <- c("townname","跨區就讀人數")
+df1
+
+t@data <- left_join(t@data, df1)
+
+shades = auto.shading(t$"跨區就讀人數", n = 5, cols = brewer.pal(5, "OrRd")) 
+choropleth(t, t$"跨區就讀人數", shades, main="各行政區跨區就讀人數")
+choro.legend(279000, 2777000, shades, title = "人數")
+```

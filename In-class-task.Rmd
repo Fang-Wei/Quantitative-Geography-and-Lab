@@ -1,0 +1,70 @@
+##In-class task
+###**B04208025/地理三/林芳偉**
+
+```{r}
+library(GISTools)
+library(dplyr)
+library(rgdal)
+library(sp)
+
+flood <- readOGR(dsn = "QG_Data5", layer = "flood50", encoding = "UTF8")
+li <- readOGR(dsn = "QG_Data5", layer = "Taipei_li", encoding = "UTF8")
+li$ID <- c(0:434)
+
+flood_df <- data.frame(flood)
+li_df <- data.frame(li)
+
+Overlay_Layer <- gIntersection(flood, li, byid = T)
+tmp <- unlist(strsplit(names(Overlay_Layer), " "))
+
+flood.id<-vector()
+li.id<-vector()
+
+x=1
+for (i in seq(1,12360,2)) {
+  flood.id[x] <- tmp[i]
+  x=x+1
+}
+
+y=1
+for (i in seq(2,12360,2)) {
+  li.id[y]<-tmp[i]
+  y=y+1
+}
+
+li.id <- as.vector(li.id)
+df=data.frame(flood.id, li.id)
+
+for (i in 1:6180) {
+  df$area1[i] <- li$AREA[as.numeric(li.id[i])+1]*1000000
+  df$census1[i] <- as.numeric(li$CENSUS[as.numeric(li.id[i])+1])
+}
+
+Overlay_LayerNew <- SpatialPolygonsDataFrame(Overlay_Layer, data=df,match.ID = F)
+
+Overlay_LayerNew$area2 <- poly.areas(Overlay_LayerNew)
+area1 <- Overlay_LayerNew$area1
+area2 <- Overlay_LayerNew$area2
+census1 <- Overlay_LayerNew$census1
+Overlay_LayerNew$census2 <- as.numeric((area2/area1)*census1)
+
+census2 <- Overlay_LayerNew$census2
+flood.id <- Overlay_LayerNew$flood.id
+
+li.flood <- xtabs(census2 ~ li.id)
+df1 <- data.frame(li.flood)
+df1[,1]<-as.numeric(df1[,1])
+names(df1) <- c("ID","census2")
+
+li@data <- left_join(li@data, df1)
+
+n=nrow(li@data)
+for (i in 1:n){
+  if (is.na(li$census2[i])) {li$census2[i]=0}
+}
+
+shades = auto.shading(li$census2, n = 5, cols = brewer.pal(5, "OrRd")) 
+choropleth(li, li$census2, shades)
+choro.legend(279000, 2777000, bg = "white", shades, title = "各區的洪災影響人數", under = "")
+```
+

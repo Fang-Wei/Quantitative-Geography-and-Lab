@@ -1,0 +1,48 @@
+##加分題四
+###**B04208025/地理三/林芳偉**
+
+##1.
+```{r}
+rm(list = ls())
+library(spdep)
+library(rgdal)
+library(GISTools)
+
+TWPOP <- readOGR(dsn = "Popn_TWN", layer = "Popn_TWN", encoding="UTF8")
+
+TW_nb <- poly2nb(TWPOP, queen = FALSE)
+TW_nb_w <- nb2listw(TW_nb, zero.policy=T)
+
+l <- c()
+for(i in 1:368) {
+  l[i] <- length(TW_nb[[i]])
+}
+l <- as.numeric(l)
+
+paste("towncode：", TWPOP@data[which(l==max(l)),6])
+```
+
+##2.
+```{r}
+TWPOP@data$area <- poly.areas(TWPOP)
+TWPOP@data$density <- as.numeric(TWPOP@data$Popn)/TWPOP@data$area
+
+for(i in 1:368) {
+  TWPOP@data$st_order[i] <- min(TW_nb[[i]])
+}
+
+TWPOP@data$st_order <- as.numeric(TWPOP@data$st_order)
+
+for(j in 1:368) {
+  if(TWPOP@data$st_order[j] == 0) {TWPOP@data$st_order_density[j] <- 0}
+  else {TWPOP@data$st_order_density[j] <- TWPOP@data[TWPOP@data$st_order[j], 17]}
+}
+
+TWTable <- TWPOP@data
+
+shades = auto.shading(TWTable$st_order_density, n = 5, cols = brewer.pal(5, "Greens"))
+choropleth(TWPOP, TWTable$st_order_density, shades, main="台灣各鄉鎮的1st-order鄰居人口密度")
+choro.legend(350000, 2650000, shades, title = "Density")
+map.scale(103527, 2438124, 100000, "km",2,50)
+north.arrow(55700, 2768124, 10000,col= 'black')
+```

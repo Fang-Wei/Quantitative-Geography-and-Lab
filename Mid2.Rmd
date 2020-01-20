@@ -1,0 +1,151 @@
+##第二次期中考加分題
+###**B04208025/地理三/林芳偉**
+
+```{r}
+rm(list = ls())
+
+library(GISTools)
+library(rgdal)
+library(dplyr)
+library(sp)
+library(aspace)
+
+town <- readOGR(dsn = "Temples", layer = "Taiwan_town_twd97", encoding = "UTF8")
+temp <- readOGR(dsn = "Temples", layer = "Tempcycle_twd97", encoding = "UTF8")
+
+town_df <- data.frame(town)
+temp_df <- data.frame(temp)
+```
+
+###1.
+```{r}
+m <- temp[which(temp_df$"祭祀圈層級"=="村落型" & temp_df$"主祭神祇"=="媽祖"),]
+m_buf <- gBuffer(m, width = 2000, byid = T)
+int <- gIntersection(m_buf, town, byid=T)
+
+intn <- strsplit(names(int)," ")
+intn <- unlist(intn)
+
+dt <- matrix(ncol=2, nrow=length(intn)/2)
+colnames(dt)=c("town.id","temp.id")
+
+x=1
+for(i in seq(1,length(intn),2)){
+  dt[x,2]=intn[i]
+  dt[x,1]=intn[i+1]
+  x=x+1
+}
+dt=data.frame(dt)
+
+for(i in 1:nrow(dt)){
+  dt$town.area[i] <- town$town_area[as.numeric(as.vector(dt$town.id[i]))+1]
+  dt$town.pop[i] <- town$CENSUS[as.numeric(as.vector(dt$town.id[i]))+1]
+  dt$town.name[i] <- as.character(town$FULLTOWN[as.numeric(as.vector(dt$town.id[i]))+1])
+}
+
+int2 <- SpatialPolygonsDataFrame(int, data=dt, match.ID=F)
+int2$int.area <- poly.areas(int2)
+
+town.area <- int2$town.area
+int.area <- int2$int.area
+town.pop <- int2$town.pop
+int2$m.pop <- round(town.pop*(int.area/town.area))
+df2 <- data.frame(int2)
+
+pop <- sum(df2$m.pop)
+cat("台灣本島信仰媽祖的村落型祭祀圈信眾人數：", pop, "人", "\n")
+```
+
+###2.
+```{r}
+med.cen2 <- median_centre(id=1, points=m@data[,8:9])
+med.cen2 <- SpatialPoints(med.cen2)
+med.cen <- gDistance(med.cen2, m, byid = T)
+med.cen <- m[which(med.cen==min(med.cen)),]
+data.frame(med.cen)
+```
+
+###3.
+```{r}
+cat("遶境大會中心位置： x：", med.cen2@coords[,2], ", y：", med.cen2@coords[,3], "\n")
+```
+
+###4.
+```{r}
+m2 <- temp[which(temp_df$"主祭神祇"=="媽祖"),]
+g <- temp[which(temp_df$"主祭神祇"=="觀音菩薩"),]
+
+m2_cen <- mean_centre(id=1, weighted=FALSE, weights=NULL, points=m2@coords[,1:2])
+m2_sdd <- calc_sdd(id=1, points=m2@coords[,1:2])
+g_cen <- mean_centre(id=1, weighted=FALSE, weights=NULL, points=g@coords[,1:2])
+g_sdd <- calc_sdd(id=1, points=g@coords[,1:2])
+
+plot(town, col="gray")
+calc_sdd(id=1, points=m2@coords[,1:2])
+plot_sdd(plotnew=F, plotcentre=FALSE, sdd.col="red", sdd.lwd=1, titletxt="", plotpoints=F)
+calc_sdd(id=1, points=g@coords[,1:2])
+plot_sdd(plotnew=F, plotcentre=FALSE, sdd.col="blue", sdd.lwd=1, titletxt="", plotpoints=F)
+calc_sde(id=1, points=m2@coords[,1:2])
+plot_sde(plotnew=FALSE, plotcentre=FALSE, sde.col="red",sde.lwd=1,titletxt="", plotpoints=F)
+calc_sde(id=1, points=g@coords[,1:2])
+plot_sde(plotnew=FALSE, plotcentre=FALSE, sde.col="blue",sde.lwd=1,titletxt="", plotpoints=F)
+points(m2_cen$CENTRE.x, m2_cen$CENTRE.y,  col="red", pch=20)
+points(g_cen$CENTRE.x, g_cen$CENTRE.y,  col="blue", pch=20)
+legend(0,2550000, c("媽祖","觀音菩薩"), col=c("red","blue"), pch=20, xpd=T)
+map.scale(400000, 2550000, 100000, "100 km", 4)
+north.arrow(5000, 2700000, 20000, col="gray30")
+title("信仰媽祖與觀音菩薩信眾的空間分佈差異")
+```
+
+###5.
+####虛無假設：資料變異數(s^2)小於等於平均數(λ)
+####對立假設：資料變異數大於平均數(資料群聚)
+####顯著水準α=0.05(critical value=1.64)
+```{r}
+bb <- bbox(town)
+grd <- GridTopology(cellcentre.offset=c(bb[1,1], bb[2,1]), cellsize=c(20000,20000), cells.dim=c(15,20))
+grd <- SpatialPolygonsDataFrame(as.SpatialPolygons.GridTopology(grd), data=data.frame(c(1:300)),
+                                match.ID=F)
+proj4string(grd)=proj4string(town)
+
+m2_poi <- c()
+for(i in 1:300){
+  m2_poi[i]=sum(gWithinDistance(grd, m2, 0, byid=T)[,i])}
+poi <- table(factor(m2_poi, levels=min(m2_poi):max(m2_poi)))
+m <- mean(poi)
+s2 <- var(poi)
+t1 <- ((s2/m)-1)/(2/(300-1))^(0.5)
+t1>1.64
+t1
+
+g_poi <- c()
+for(i in 1:300){
+  g_poi[i]=sum(gWithinDistance(grd, g, 0, byid=T)[,i])}
+poi <- table(factor(g_poi, levels=min(g_poi):max(g_poi)))
+m <- mean(poi)
+s2 <- var(poi)
+t2 <- ((s2/m)-1)/(2/(300-1))^(0.5)
+t2>1.64
+t2
+```
+####由於t值皆大於顯著水準α=0.05(critical value=1.64)，可推翻虛無假設，統計上為顯著，故信仰媽祖與觀音菩薩的空間群聚特性為群聚。
+####由於信仰觀音菩薩的t值比信仰媽祖的t值大，因此信仰觀音菩薩的空間群聚狀況比信仰媽祖來的顯著。
+
+###6.
+```{r}
+grd2 <- GridTopology(cellcentre.offset=c(bb[1,1], bb[2,1]), cellsize=c(50000,50000), cells.dim=c(7,9))
+grd2 <- SpatialPolygonsDataFrame(as.SpatialPolygons.GridTopology(grd2), data=data.frame(c(1:63)),
+                                match.ID=F)
+proj4string(grd2)=proj4string(town)
+
+m2_poi2 <- c()
+for(i in 1:63){
+  m2_poi2[i]=sum(gWithinDistance(grd2, m2, 0, byid=T)[,i])}
+poi <- table(factor(m2_poi2, levels=min(m2_poi2):max(m2_poi2)))
+m <- mean(poi)
+s2 <- var(poi)
+t3 <- ((s2/m)-1)/(2/(300-1))^(0.5)
+t3>1.64
+t3
+```
+####雖然50kmx50km檢定的結果仍是群聚分布，但50kmx50km的t值比20kmx20km的t值小很多，群聚的狀況也比較不明顯，因此網格尺度越大，則越無法看出網格內部分布的真實情況，誤差也會越大。

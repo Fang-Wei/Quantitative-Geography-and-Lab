@@ -1,0 +1,31 @@
+##HW03
+###**B04208025/地理三/林芳偉**
+
+###In-class task #2
+```{r}
+library(GISTools)
+library(rgdal)
+library(sp)
+EPA.STN <- readOGR(dsn = "Lyr", layer = "EPA_STN1")
+Popn.TWN <- readOGR(dsn = "Lyr", layer = "Popn_TWN", encoding="Big5")
+
+a <- data.frame(EPA.STN)
+
+Air.Pollution.Map <- function(x) {
+  red <- which(a[,11]>x, arr.ind = TRUE)
+  blue <- which(a[,11]<=x, arr.ind = TRUE)
+  
+  par(mar = c(0,2,2,2))
+  plot(Popn.TWN, col='lightgreen', border="grey", bg='aliceblue')
+  plot(EPA.STN[red,], add=TRUE, col= 'red', pch = 16)
+  plot(EPA.STN[blue,], add=TRUE, col= 'blue', pch = 16)
+  map.scale(103527.2,2438124,100000, "km",2,50) 
+  north.arrow(105700.2,2768124,5000,col= 'lightblue')
+  legend(5700.2,2638124, c(">PSI ","<PSI"), pch=c(12,16),col = c("red","blue"))
+  
+  title('PSI')
+}
+
+Air.Pollution.Map(60)
+Air.Pollution.Map(70)
+```

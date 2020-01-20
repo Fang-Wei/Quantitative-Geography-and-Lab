@@ -1,0 +1,266 @@
+##課堂實習
+###B04208025/地理三/林芳偉
+
+##1.
+```{r}
+rm(list = ls())
+library(spdep)
+library(rgdal)
+library(GISTools)
+
+li <- readOGR(dsn = "Lab11_Data", layer = "Tainan_li", encoding="UTF8")
+town <- readOGR(dsn = "Lab11_Data", layer = "Tainan_town", encoding="UTF8")
+sch <- readOGR(dsn = "QG_Data6", layer = "Schools", encoding="UTF8")
+
+li.df <- data.frame(li)
+town.df <- data.frame(town)
+
+int <- data.frame(gIntersection(li, sch, byid = T))
+tmp <- unlist(strsplit(rownames(int), " "))
+
+sch.id <- vector()
+li.id <- vector()
+
+x=1
+for (i in seq(1,848,2)) {
+  li.id[x] <- tmp[i]
+  x=x+1  
+}
+
+y=1
+for (i in seq(2,848,2)) {
+  sch.id[y] <- tmp[i]
+  y=y+1
+}
+
+df <- data.frame(sch.id, li.id, Number=1)
+a <- data.frame(xtabs(df$Number~df$li.id))
+names(a) <- c("li.id", "counts")
+a$li.id <- as.numeric(a$li.id)
+
+li@data$"counts" <- 0
+for(i in 1:nrow(a)) {
+  li@data$"counts"[a[i,1]-1] <- a[i,2]
+}
+
+#1.Defining Spatial Neighbors：Queen
+TN_nb <- poly2nb(li)
+
+#2.Building Weighting Matrix
+TN_nb_w <- nb2listw(TN_nb, zero.policy=T)
+
+#3.Attribute
+counts <- li@data$counts
+
+#4.Local Moran
+LISA.counts <- localmoran(counts, TN_nb_w, zero.policy=T)
+printCoefmat(data.frame(LISA.counts))
+
+li$z.li <- LISA.counts[,4]
+li$p.value <- LISA.counts[,5]
+
+lm.palette <- colorRampPalette(c("white", "orange", "red"), space = "rgb")
+spplot(li, zcol="counts", col.regions=lm.palette(20), main="Counts")
+spplot(li, zcol="z.li", col.regions=lm.palette(20), main="Local Moran")
+
+lm.palette2 <- colorRampPalette(c("red", "orange", "white"), space = "rgb")
+spplot(li, zcol="p.value", col.regions=lm.palette2(20), main="p-value")
+
+chk <- counts-mean(counts)
+zi <- LISA.counts[,4]
+quadrant <- vector(mode="numeric", length=nrow(LISA.counts))
+quadrant[chk>0 & zi>0] <- 1 # H-H
+quadrant[chk<0 & zi>0] <- 2 # L-L
+quadrant[chk>0 & zi<0] <- 3 # H-L
+quadrant[chk<0 & zi<0] <- 4 # L-H
+
+signif <- 0.05
+quadrant[LISA.counts[, 5] > signif] <- 5
+colors <- c("red", "blue", "lightpink", "skyblue2", rgb(.95, .95, .95))
+plot(li, border="grey", col=colors[quadrant], main = "LISA Cluster Map: Counts")
+legend("bottomright", legend=c("High-High", "Low-Low", "High-Low","Low-High"), fill=colors,bty="n",cex=0.7, y.intersp=1, x.intersp=1)
+
+#6.Local Gi*
+TN_nb_in <- include.self(TN_nb)
+TN_nb_in_w <- nb2listw(TN_nb_in, zero.policy=T)
+LG <- localG(counts, TN_nb_in_w)
+
+LG1 <- 0
+for (i in 1:800){
+  LG1[i] <- LG[i]
+}
+
+li$LG <- LG1
+lm.palette <- colorRampPalette(c("white", "orange", "red"), space = "rgb")
+spplot(li, zcol="LG", col.regions=lm.palette(20), main="Local Gi*")
+
+# Mapping Hotspot Areas 
+LGV <- li$LG
+chk <- LGV-1.65
+
+quadrant <- vector(mode="numeric", length=41)
+quadrant[chk>0] <- 1 # Cluster
+quadrant[chk<0] <- 2 # Non-cluster
+
+colors <- c("red", "lightgray")
+plot(li, border="darkgrey", col=colors[quadrant], main = "Cluster Map: Counts")
+legend("bottomright", legend=c("Cluster", "Non-cluster"), fill=colors, bty="n", cex=0.7, y.intersp=1, x.intersp=1)
+```
+
+##2.1
+```{r}
+li@data$area <- poly.areas(li)
+li@data$adjust <- li@data$counts/li@data$area
+
+adjust <- li@data$adjust
+
+LISA.adjust <- localmoran(adjust, TN_nb_w, zero.policy=T)
+printCoefmat(data.frame(LISA.adjust))
+
+li$z.li2 <- LISA.adjust[,4]
+li$p.value2 <- LISA.adjust[,5]
+
+lm.palette <- colorRampPalette(c("white", "orange", "red"), space = "rgb")
+spplot(li, zcol="adjust", col.regions=lm.palette(20), main="adjust")
+spplot(li, zcol="z.li2", col.regions=lm.palette(20), main="Local Moran")
+
+lm.palette2 <- colorRampPalette(c("red", "orange", "white"), space = "rgb")
+spplot(li, zcol="p.value2", col.regions=lm.palette2(20), main="p-value")
+
+chk2 <- adjust-mean(adjust)
+zi2 <- LISA.adjust[,4]
+quadrant <- vector(mode="numeric", length=nrow(LISA.adjust))
+quadrant[chk2>0 & zi2>0] <- 1 # H-H
+quadrant[chk2<0 & zi2>0] <- 2 # L-L
+quadrant[chk2>0 & zi2<0] <- 3 # H-L
+quadrant[chk2<0 & zi2<0] <- 4 # L-H
+
+signif <- 0.05
+quadrant[LISA.adjust[, 5] > signif] <- 5
+colors <- c("red", "blue", "lightpink", "skyblue2", rgb(.95, .95, .95))
+plot(li, border="grey", col=colors[quadrant], main = "LISA Cluster Map: adjust")
+legend("bottomright", legend=c("High-High", "Low-Low", "High-Low","Low-High"), fill=colors,bty="n",cex=0.7, y.intersp=1, x.intersp=1)
+
+#6.Local Gi*
+TN_nb_in <- include.self(TN_nb)
+TN_nb_in_w <- nb2listw(TN_nb_in, zero.policy=T)
+LG2 <- localG(adjust, TN_nb_in_w)
+
+LG <- 0
+for (i in 1:800){
+  LG[i] <- LG2[i]
+}
+
+li$LG2 <- LG
+lm.palette <- colorRampPalette(c("white", "orange", "red"), space = "rgb")
+spplot(li, zcol="LG2", col.regions=lm.palette(20), main="Local Gi*")
+
+# Mapping Hotspot Areas 
+LGV <- li$LG2
+chk <- LGV-1.65
+
+quadrant <- vector(mode="numeric", length=41)
+quadrant[chk>0] <- 1 # Cluster
+quadrant[chk<0] <- 2 # Non-cluster
+
+colors <- c("red", "lightgray")
+plot(li, border="darkgrey", col=colors[quadrant], main = "Cluster Map: adjust")
+legend("bottomright", legend=c("Cluster", "Non-cluster"), fill=colors, bty="n", cex=0.7, y.intersp=1, x.intersp=1)
+```
+
+##2.2
+```{r}
+town1 <- gBuffer(town, width = 0, byid = T)
+int <- data.frame(gIntersection(town1, sch, byid = T))
+tmp <- unlist(strsplit(rownames(int), " "))
+
+sch.id <- vector()
+town.id <- vector()
+
+x=1
+for (i in seq(1,424,2)) {
+  town.id[x] <- tmp[i]
+  x=x+1  
+}
+
+y=1
+for (i in seq(2,424,2)) {
+  sch.id[y] <- tmp[i]
+  y=y+1
+}
+
+df <- data.frame(sch.id, town.id, Number=1)
+df$town.id <- as.numeric(df$town.id)
+a <- data.frame(xtabs(df$Number~df$town.id))
+names(a) <- c("town.id", "counts")
+a$town.id <- as.numeric(a$town.id)
+
+town@data$"counts" <- 0
+for(i in 1:nrow(a)) {
+  town@data$"counts"[a[i,1]-1] <- a[i,2]
+}
+
+#1.Defining Spatial Neighbors：Queen
+TN_nb <- poly2nb(town)
+
+#2.Building Weighting Matrix
+TN_nb_w <- nb2listw(TN_nb, zero.policy=T)
+
+#3.Attribute
+counts <- town@data$counts
+
+#4.Local Moran
+LISA.counts <- localmoran(counts, TN_nb_w, zero.policy=T)
+printCoefmat(data.frame(LISA.counts))
+
+town$z.town <- LISA.counts[,4]
+town$p.value <- LISA.counts[,5]
+
+lm.palette <- colorRampPalette(c("white", "orange", "red"), space = "rgb")
+spplot(town, zcol="counts", col.regions=lm.palette(20), main="Counts")
+spplot(town, zcol="z.town", col.regions=lm.palette(20), main="Local Moran")
+
+lm.palette2 <- colorRampPalette(c("red", "orange", "white"), space = "rgb")
+spplot(town, zcol="p.value", col.regions=lm.palette2(20), main="p-value")
+
+chk <- counts-mean(counts)
+zi <- LISA.counts[,4]
+quadrant <- vector(mode="numeric", length=nrow(LISA.counts))
+quadrant[chk>0 & zi>0] <- 1 # H-H
+quadrant[chk<0 & zi>0] <- 2 # L-L
+quadrant[chk>0 & zi<0] <- 3 # H-L
+quadrant[chk<0 & zi<0] <- 4 # L-H
+
+signif <- 0.05
+quadrant[LISA.counts[, 5] > signif] <- 5
+colors <- c("red", "blue", "lightpink", "skyblue2", rgb(.95, .95, .95))
+plot(town, border="grey", col=colors[quadrant], main = "LISA Cluster Map: Counts")
+legend("bottomright", legend=c("High-High", "Low-Low", "High-Low","Low-High"), fill=colors,bty="n",cex=0.7, y.intersp=1, x.intersp=1)
+
+#6.Local Gi*
+TN_nb_in <- include.self(TN_nb)
+TN_nb_in_w <- nb2listw(TN_nb_in, zero.policy=T)
+LG <- localG(counts, TN_nb_in_w)
+
+LG1 <- 0
+for (i in 1:38){
+  LG1[i] <- LG[i]
+}
+
+town$LG <- LG1
+lm.palette <- colorRampPalette(c("white", "orange", "red"), space = "rgb")
+spplot(town, zcol="LG", col.regions=lm.palette(20), main="Local Gi*")
+
+# Mapping Hotspot Areas 
+LGV <- town$LG
+chk <- LGV-1.65
+
+quadrant <- vector(mode="numeric", length=41)
+quadrant[chk>0] <- 1 # Cluster
+quadrant[chk<0] <- 2 # Non-cluster
+
+colors <- c("red", "lightgray")
+plot(town, border="darkgrey", col=colors[quadrant], main = "Cluster Map: Counts")
+legend("bottomright", legend=c("Cluster", "Non-cluster"), fill=colors, bty="n", cex=0.7, y.intersp=1, x.intersp=1)
+```
+

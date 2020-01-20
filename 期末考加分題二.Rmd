@@ -1,0 +1,76 @@
+##HW期末考加分題二
+###**B04208025/地理三/林芳偉**
+
+```{r}
+rm(list = ls())
+
+library(GISTools)
+library(sp)
+library(rgdal)
+library(aspace)
+library(dplyr)
+library(spatstat)
+sch <- readOGR(dsn = "QG_Data6", layer = "Schools", encoding = "UTF8")
+t <- readOGR(dsn = "File", layer = "Tainan", encoding = "UTF8")
+tv <- readOGR(dsn = "File", layer = "Tainan_vill", encoding = "UTF8")
+sch.df <- data.frame(sch)
+t.df <- data.frame(t)
+tv.df <- data.frame(tv)
+```
+
+##矩形邊框
+```{r}
+bb <- bbox(sch)
+x.coor <- sch$X_coor
+y.coor <- sch$Y_coor
+x.range <- bb[1,]
+y.range <- bb[2,]
+
+sch.ppp <- ppp(x.coor, y.coor, x.range, y.range)
+nnd <- nndist(sch.ppp, k=1)
+win <- owin(x.range, y.range)
+A <- area.owin(win)
+r.obs <- mean(nnd)
+r.exp <- 0.5/(sqrt(424/A))
+R.sch <- r.obs/r.exp
+R.sch <- as.numeric(R.sch)
+
+r <- c()
+for(i in 1:100) {
+  rp <- rpoint(424, win = win)
+  nnd1 <- nndist(rp, k=1)
+  r.obs1 <- mean(nnd1)
+  r.exp1 <- 0.5/(sqrt(424/A))
+  r[i] <- r.obs1/r.exp1
+}
+
+max(r)
+min(r)
+R.sch
+```
+
+##行政區邊框
+```{r}
+win <- owin(poly = list(x=tv$X_COOR, y=tv$Y_COOR))
+sch.ppp2 <- ppp(x.coor, y.coor, window= win)
+nnd <- nndist(sch.ppp2, k=1)
+A <- area.owin(win)
+r.obs <- mean(nnd)
+r.exp <- 0.5/(sqrt(424/A))
+R.sch <- r.obs/r.exp
+R.sch <- as.numeric(R.sch)
+
+r <- c()
+for(i in 1:100) {
+  rp <- rpoint(424, win = win)
+  nnd1 <- nndist(rp, k=1)
+  r.obs1 <- mean(nnd1)
+  r.exp1 <- 0.5/(sqrt(424/A))
+  r[i] <- r.obs1/r.exp1
+}
+
+max(r)
+min(r)
+R.sch
+```
+

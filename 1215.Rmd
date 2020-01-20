@@ -1,0 +1,63 @@
+##In-class lab
+###**B04208025/地理三/林芳偉**
+
+##1.
+```{r}
+rm(list = ls())
+
+library(GISTools)
+library(sp)
+library(rgdal)
+library(aspace)
+library(dplyr)
+library(spatstat)
+sch <- readOGR(dsn = "QG_Data6", layer = "Schools", encoding = "UTF8")
+sch.df <- data.frame(sch)
+
+bb <- bbox(sch)
+x.coor <- sch$X_coor
+y.coor <- sch$Y_coor
+x.range <- bb[1,]
+y.range <- bb[2,]
+
+sch.ppp <- ppp(x.coor, y.coor, x.range, y.range)
+win <- owin(x.range, y.range)
+
+nnd <- list()
+f <- list()
+for(i in 1:100) {
+  rp <- rpoint(424, win = win)
+  nnd[[i]] <- nncross(rp, sch.ppp)
+  nnd[[i]] <- c(nnd[[i]][,1])
+  f[[i]] <- ecdf(nnd[[i]])
+}
+
+plot(f[[1]], pch=20, main="F Function", xlab="Distance (m)", ylab="F")
+for(i in 2:100) {
+  lines(f[[i]])
+}
+```
+
+##2.
+```{r}
+K <- Kest(sch.ppp)
+plot(K, main="K function", xlab="Distance", ylab="K")
+
+L <- Lest(sch.ppp)
+L1 <- L$iso-L$r
+plot(L1, main="L(d)", ylab="L", type="l")
+```
+
+##3.
+```{r}
+CL_G <- envelope(sch.ppp, fun=Gest, nsim=100, nrank=1)
+CL_F <- envelope(sch.ppp, fun=Fest, nsim=100, nrank=1)
+CL_K <- envelope(sch.ppp, fun=Kest, nsim=100, nrank=1)
+CL_L <- envelope(sch.ppp, fun=Lest, nsim=100, nrank=1)
+
+plot(CL_G, main="G function", ylab="G")
+plot(CL_F, main="F function", ylab="F")
+plot(CL_K, main="K function", ylab="K")
+plot(CL_L, main="L", ylab="L")
+```
+

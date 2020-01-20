@@ -1,0 +1,66 @@
+##HW11
+###**B04208025/地理三/林芳偉**
+
+##1.
+```{r}
+rm(list = ls())
+library(spdep)
+library(rgdal)
+library(GISTools)
+
+TWPOP <- readOGR(dsn = "Popn_TWN", layer = "Popn_TWN", encoding="UTF8")
+TWPOP@data$area <- poly.areas(TWPOP)
+TWPOP@data$density <- as.numeric(TWPOP@data$Popn)/TWPOP@data$area
+TWTable <- TWPOP@data
+
+coords <- coordinates(TWPOP)
+IDs <- as.numeric(TWPOP@data$UNI_ID)
+
+#用K-nearest Neighbors(KNN)定義鄰居，找最近的兩個鄰居(k=2)
+TW_nb <- knn2nb(knearneigh(coords, k=2), row.names=IDs) 
+TW_nb_w <- nb2listw(TW_nb, zero.policy=T)
+
+shades = auto.shading(TWTable$density, n = 5, cols = brewer.pal(5, "Greens"))
+choropleth(TWPOP, TWTable$density, shades)
+
+#Moran’s I coefficient
+density <- TWPOP@data$density
+M <- moran.test(density, listw=TW_nb_w, zero.policy=TRUE)
+M
+
+#Monte-Carlo simulation
+mc <- moran.mc(density, listw=TW_nb_w, nsim=999)
+hist(mc$res, freq=TRUE, breaks=20, xlab="Simulated Moran's I")
+abline(v=0.52, col="red")
+
+#Moran scatter plot
+msp <- moran.plot(density, TW_nb_w, labels=IDs)
+
+#General G statistic
+G <- globalG.test(density, listw=TW_nb_w)
+G
+```
+
+##2.
+```{r}
+#1.Contiguity:ROOK
+TW_nb1 <- poly2nb(TWPOP, queen = FALSE) 
+TW_nb_w1 <- nb2listw(TW_nb1, zero.policy=T)
+
+density <- TWPOP@data$density
+M1 <- moran.test(density, listw=TW_nb_w1, zero.policy=TRUE)
+
+#2.K-nearest Neighbors (KNN)
+TW_nb2 <- knn2nb(knearneigh(coords, k=2), row.names=IDs)
+TW_nb_w2 <- nb2listw(TW_nb2, zero.policy=T)
+M2 <- moran.test(density, listw=TW_nb_w2, zero.policy=TRUE)
+
+#3.Distance-based
+TW_nb3 <- dnearneigh(coords, d1=0, d2=20000, row.names=IDs)
+TW_nb_w3 <- nb2listw(TW_nb3, zero.policy=T)
+M3 <- moran.test(density, listw=TW_nb_w3, zero.policy=TRUE)
+
+M1
+M2
+M3
+```

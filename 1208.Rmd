@@ -1,0 +1,101 @@
+##In class Task
+###B04208025/地理三/林芳偉
+
+```{r}
+rm(list = ls())
+
+library(GISTools)
+library(sp)
+library(rgdal)
+library(aspace)
+library(dplyr)
+library(spatstat)
+sch <- readOGR(dsn = "QG_Data6", layer = "Schools", encoding = "UTF8")
+sch.df <- data.frame(sch)
+```
+
+##1.Nearest Neighbor Analysis
+```{r}
+bb <- bbox(sch)
+x.coor <- sch$X_coor
+y.coor <- sch$Y_coor
+x.range <- bb[1,]
+y.range <- bb[2,]
+
+sch.ppp <- ppp(x.coor, y.coor, x.range, y.range)
+nnd <- nndist(sch.ppp, k=1)
+win <- owin(x.range, y.range)
+A <- area.owin(win)
+r.obs <- mean(nnd)
+r.exp <- 0.5/(sqrt(424/A))
+R.sch <- r.obs/r.exp
+R.sch <- as.numeric(R.sch)
+
+r <- c()
+for(i in 1:100) {
+  rp <- rpoint(424, win = win)
+  nnd1 <- nndist(rp, k=1)
+  r.obs1 <- mean(nnd1)
+  r.exp1 <- 0.5/(sqrt(424/A))
+  r[i] <- r.obs1/r.exp1
+}
+
+max(r)
+min(r)
+R.sch
+```
+####台南地區學校的R值小於隨機點分布計算出來的r，因此台南地區學校為群聚分布。
+
+##2.K-order Nearest Neighbor Indices
+```{r}
+nnd <- list()
+r.obs <- c()
+for(i in 1:10) {
+  nnd[[i]] <- nndist(sch.ppp, k=i)
+  r.obs[i] <- mean(nnd[[i]])
+}
+
+
+r.obs1 <- c()
+r.obs2 <- list()
+for(i in 1:100) {
+  rp <- rpoint(424, win = win)
+  
+  nnd1 <- list()
+  for(j in 1:10) {
+    nnd1[[j]] <- nndist(rp, k=j)
+    r.obs1[j] <- mean(nnd1[[j]])
+  }
+  
+  r.obs2[[i]] <- r.obs1
+}
+
+plot(r.obs, pch=20, col="blue", main="K-order Nearest Neighbor Indices", xlab="K-order", ylab="Distance (m)")
+lines(r.obs, col="blue")
+for(i in 1:100) {
+  lines(r.obs2[[i]])
+}
+```
+
+####由圖可知，不論是第K個最短距離，皆比隨機分布的距離來的小，因此台南地區學校為群聚分布。
+
+##3.G Function
+```{r}
+nnd <- nndist(sch.ppp, k=1)
+G <- ecdf(nnd)
+
+nnd1 <- list()
+G1 <- list()
+for(i in 1:100) {
+  rp <- rpoint(424, win = win)
+  nnd1[[i]] <- nndist(rp, k=1)
+  G1[[i]] <- ecdf(nnd1[[i]])
+}
+
+plot(G, pch=20, col="blue", main="G Function", xlab="Distance (m)", ylab="G")
+for(i in 1:100) {
+  lines(G1[[i]])
+}
+```
+
+####由圖可知，台南地區學校的累積距離較隨機分布的累積距離快速上升，因此為群聚分布。
